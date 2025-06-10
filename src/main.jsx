@@ -5,7 +5,8 @@ import MediaWidget from "./components/MediaWidget.jsx";
 import GoogleSearch from "./components/GoogleSearch.jsx";
 import Settings from "./components/Settings.jsx";
 import Shortcut from "./components/Shortcut";
-import config from "./config.js";
+import * as configModule from "./config.js";
+const config = configModule.default;
 import moment from "moment";
 
 const providers = zebar.createProviderGroup({
