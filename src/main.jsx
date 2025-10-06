@@ -28,14 +28,75 @@ function App() {
     const defaultDateFormat = 'h:mm a';
     const onHoverDateFormat = 'ddd DD MMM h:mm a';
     const [output, setOutput] = useState(providers.outputMap);
-    const [showMediaWidget, setShowMediaWidget] = useState(true);
-    const [showGoogleSearch, setShowGoogleSearch] = useState(true);
-    const [showShortcuts, setShowShortcuts] = useState(true);
+
+    const [monitorStates, setMonitorStates] = useState({});
     const [dateFormat, setDateFormat] = useState(defaultDateFormat);
 
+    const getMonitorLocalStorage = (key, defaultValue = true) => {
+        const monitorId = output.glazewm?.currentMonitor?.hardwareId;
+        const storageKey = monitorId ? `${key}_monitor_${monitorId}` : key;
+        const stored = localStorage.getItem(storageKey);
+        if (stored === null) {
+            localStorage.setItem(storageKey, defaultValue.toString());
+            return defaultValue;
+        }
+        return stored === 'true';
+    };
+
+    const getCurrentMonitorState = () => {
+        const monitorId = output.glazewm?.currentMonitor?.hardwareId;
+        if (!monitorId) return { showMediaWidget: true, showGoogleSearch: true, showShortcuts: true };
+
+        if (!monitorStates[monitorId]) {
+            return {
+                showMediaWidget: getMonitorLocalStorage('Media'),
+                showGoogleSearch: getMonitorLocalStorage('Google Search'),
+                showShortcuts: getMonitorLocalStorage('Shortcuts')
+            };
+        }
+        return monitorStates[monitorId];
+    };
+
+    const updateMonitorState = (key, value) => {
+        const monitorId = output.glazewm?.currentMonitor?.hardwareId;
+        if (!monitorId) return;
+
+        setMonitorStates(prev => ({
+            ...prev,
+            [monitorId]: {
+                ...prev[monitorId],
+                [key]: value
+            }
+        }));
+
+        const storageKey = key === 'showMediaWidget' ? 'Media' :
+                          key === 'showGoogleSearch' ? 'Google Search' : 'Shortcuts';
+        const localStorageKey = `${storageKey}_monitor_${monitorId}`;
+        localStorage.setItem(localStorageKey, value.toString());
+    };
+
     useEffect(() => {
-        providers.onOutput(() => setOutput(providers.outputMap));
+        const monitorId = output.glazewm?.currentMonitor?.hardwareId;
+        if (monitorId && !monitorStates[monitorId]) {
+            setMonitorStates(prev => ({
+                ...prev,
+                [monitorId]: {
+                    showMediaWidget: getMonitorLocalStorage('Media'),
+                    showGoogleSearch: getMonitorLocalStorage('Google Search'),
+                    showShortcuts: getMonitorLocalStorage('Shortcuts')
+                }
+            }));
+        }
+    }, [output.glazewm?.currentMonitor?.hardwareId]);
+
+    useEffect(() => {
+        providers.onOutput(() => {
+            setOutput(providers.outputMap);
+            console.log(providers.outputMap.glazewm);
+        });
     }, []);
+
+    const currentState = getCurrentMonitorState();
 
     function getBatteryIcon(batteryOutput) {
         if (batteryOutput.chargePercent > 90)
@@ -104,7 +165,7 @@ function App() {
                         </div>
                     )}
                 </div>
-                {showShortcuts && output.glazewm ? <div className="workspaces">
+                {currentState.showShortcuts && output.glazewm ? <div className="workspaces">
                     <Shortcut commandRunner={output.glazewm.runCommand}
                               commands={[
                                   'focus --workspace 3',
@@ -124,7 +185,7 @@ function App() {
 
             <div className="center">
                 <div className="box">
-                    {showMediaWidget && output.media && output.audio ? <MediaWidget
+                    {currentState.showMediaWidget && output.media && output.audio ? <MediaWidget
                         mediaProvider={output.media}
                         audioProvider={output.audio}/> : null}
                     <i className="nf nf-md-calendar_month"></i>
@@ -139,7 +200,7 @@ function App() {
             </div>
 
             <div className="right">
-                {showGoogleSearch && output.glazewm ? <GoogleSearch
+                {currentState.showGoogleSearch && output.glazewm ? <GoogleSearch
                     commandRunner={output.glazewm.runCommand} explorerPath={config.explorerPath}/> : null}
                 <div className="box">
                     {output.glazewm && (
@@ -161,11 +222,15 @@ function App() {
                             ></button>
                         </>
                     )}
-                    {<Settings widgetObj={[
-                        { name: 'Media', changeState: setShowMediaWidget },
-                        { name: 'Google Search', changeState: setShowGoogleSearch },
-                        { name: 'Shortcuts', changeState: setShowShortcuts }
-                    ]}/>}
+                    {<Settings
+                        widgetObj={[
+                            { name: 'Media', changeState: (value) => updateMonitorState('showMediaWidget', value) },
+                            { name: 'Google Search', changeState: (value) => updateMonitorState('showGoogleSearch', value) },
+                            { name: 'Shortcuts', changeState: (value) => updateMonitorState('showShortcuts', value) }
+                        ]}
+                        currentState={currentState}
+                        monitorId={output.glazewm?.currentMonitor?.hardwareId}
+                    />}
 
                     {output.keyboard && (
                         <div className="keyboard">

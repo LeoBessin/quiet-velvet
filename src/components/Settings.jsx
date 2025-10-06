@@ -1,19 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
-const Settings = ({ widgetObj }) => {
+const Settings = ({ widgetObj, currentState }) => {
     const [showSettings, setShowSettings] = useState(false);
-    const [widgetLocalObj, setWidgetLocalObj] = useState([]);
-
-    useEffect(() => {
-        widgetObj.forEach((widget) => {
-            const state = getLocalStorage(widget.name);
-            setWidgetLocalObj((prevWidgetLocalObj) => [
-                ...prevWidgetLocalObj,
-                { name: widget.name, changeState: widget.changeState, state: state }
-            ]);
-            widget.changeState(state);
-        });
-    }, []);
 
     const style = {
         cursor: 'pointer',
@@ -43,32 +31,36 @@ const Settings = ({ widgetObj }) => {
         cursor: 'pointer',
         whiteSpace: 'nowrap',
     }
-    const updateLocalStorage = (name, state) => {
-        localStorage.setItem(name, state);
-    }
 
-    const getLocalStorage = (name) => {
-        const tempState = localStorage.getItem(name);
-        if (tempState === null) {
-            localStorage.setItem(name, 'true');
-            return true;
+    const getWidgetState = (widgetName) => {
+        switch(widgetName) {
+            case 'Media':
+                return currentState?.showMediaWidget ?? true;
+            case 'Google Search':
+                return currentState?.showGoogleSearch ?? true;
+            case 'Shortcuts':
+                return currentState?.showShortcuts ?? true;
+            default:
+                return true;
         }
-        return tempState === 'true';
-    }
+    };
+
     return (
         <div className='logo' style={style}>
             {showSettings ?
                 <div style={divStyle}>
-                    {widgetLocalObj && widgetLocalObj.map(({ name, changeState }, index) => {
+                    {widgetObj && widgetObj.map(({ name, changeState }, index) => {
+                        const isChecked = getWidgetState(name);
                         return (
-                            <div key={index} style={settingsStyle}>
-                                <input type="checkbox" id={name} name={name} checked={getLocalStorage(name)}
-                                       onChange={() => {
-                                           const state = getLocalStorage(name);
-                                           changeState(!state);
-                                           updateLocalStorage(name, !state);
-                                       }}/>
-                                <label htmlFor={name} style={labelStyle}>{name}</label>
+                            <div key={`${name}-${index}`} style={settingsStyle}>
+                                <input
+                                    type="checkbox"
+                                    id={`${name}-${index}`}
+                                    name={name}
+                                    checked={isChecked}
+                                    onChange={(e) => changeState(e.target.checked)}
+                                />
+                                <label htmlFor={`${name}-${index}`} style={labelStyle}>{name}</label>
                             </div>
                         );
                     })}
@@ -77,10 +69,8 @@ const Settings = ({ widgetObj }) => {
             <button className="nf nf-cod-settings_gear settings clean-button"
                     onClick={() => setShowSettings(!showSettings)}>
             </button>
-
         </div>
-    )
-        ;
+    );
 };
 
 export default Settings;
