@@ -140,7 +140,8 @@ To change the icon, choose one from [Nerd Fonts Cheat Sheet](https://www.nerdfon
 ### Settings
 ![quiet-velvet-settings](https://raw.githubusercontent.com/LeoBessin/files/refs/heads/master/zebar/settings_zebar.png)
 
-> This widget allows you to toggle the visibility of all your widgets and saves your preferences in local storage.
+> This widget allows you to toggle the visibility of all your widgets and saves your preferences per screen in 
+> local storage.
 
 To add another widget, follow this example:
 ```jsx
